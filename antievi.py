@@ -1,5 +1,23 @@
 import psutil
 import time
+import pyfiglet
+from termcolor import colored
+
+# Função para exibir o texto RedMoon em ASCII art
+def display_redmoon():
+    red_ascii_art = pyfiglet.figlet_format("Red", font="slant")
+    moon_ascii_art = pyfiglet.figlet_format("Moon", font="slant")
+    red_colored = colored(red_ascii_art, 'red')
+    combined_art = ""
+    for red_line, moon_line in zip(red_colored.split('\n'), moon_ascii_art.split('\n')):
+        combined_art += red_line + moon_line + "\n"
+    print(combined_art)
+
+# Função para exibir o menu
+def exibir_menu():
+    print("Selecione uma opção:")
+    print("1. Iniciar monitoramento")
+    print("2. Sair")
 
 # Função para classificar o comportamento como normal ou suspeito
 def classificar_comportamento(comportamento):
@@ -83,5 +101,14 @@ def alertar_usuario(comportamento):
 
 # Função principal
 if __name__ == "__main__":
-    # Iniciar o monitoramento do comportamento do sistema
-    monitorar_comportamento()
+    display_redmoon()
+    while True:
+        exibir_menu()
+        opcao = input("Escolha uma opção: ")
+        if opcao == "1":
+            monitorar_comportamento()
+        elif opcao == "2":
+            print("Saindo...")
+            break
+        else:
+            print("Opção inválida. Tente novamente.")
