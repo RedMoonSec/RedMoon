@@ -90,6 +90,7 @@ if __name__ == "__main__":
         exibir_menu()
         opcao = input("Escolha uma opção: ")
         if opcao == "1":
+            print("Monitorando...")
             monitorar_comportamento()
         elif opcao == "2":
             print("Saindo...")
