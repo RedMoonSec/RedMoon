@@ -3,6 +3,7 @@ import psutil
 import time
 import pyfiglet
 from termcolor import colored
+from datetime import datetime
 
 # Função para exibir o texto RedMoon em ASCII art
 def display_redmoon():
@@ -33,12 +34,12 @@ def determinar_comportamento(cpu_percent, network_traffic, last_network_traffic)
     # Suponha que você defina uma média e um limite de desvio padrão para o uso da CPU e para o tráfego de rede
     cpu_media = 50
     cpu_desvio_padrao = 10
-    network_media = 100  # bytes (1MB)
-    network_desvio_padrao = 50  # bytes (500KB)
+    network_media = 1000  # bytes (1MB)
+    network_desvio_padrao = 500  # bytes (500KB)
 
     # Verifique se o uso da CPU está acima do limite
     if cpu_percent > cpu_media + cpu_desvio_padrao:
-        return "Uso anormal da CPU"
+        return "Uso anormal da CPU", 0, 0
 
     # Obter o número de bytes enviados e recebidos no último segundo
     bytes_enviados = network_traffic.bytes_sent - last_network_traffic.bytes_sent
@@ -46,31 +47,10 @@ def determinar_comportamento(cpu_percent, network_traffic, last_network_traffic)
 
     # Verifique se o tráfego de rede está acima do limite
     if bytes_enviados > network_media + network_desvio_padrao or bytes_recebidos > network_media + network_desvio_padrao:
-        interfaces_ativas = psutil.net_if_stats()
-        interfaces_com_trafego = []
-        for interface, stats in interfaces_ativas.items():
-            if stats.isup and stats.speed > 0:
-                interfaces_com_trafego.append(interface)
-        print("DEBUG: Tráfego de rede suspeito nas seguintes interfaces:", interfaces_com_trafego)
-        print("DEBUG: Bytes enviados no último segundo:", bytes_enviados)
-        print("DEBUG: Bytes recebidos no último segundo:", bytes_recebidos)
-
-        # Identifica os processos que estão consumindo mais rede
-        processos_rede = {}
-        for conexao in psutil.net_connections(kind='inet'):
-            pid = conexao.pid
-            if pid is not None:
-                processo = psutil.Process(pid)
-                io_rede = psutil.net_io_counters(pernic=False, nowrap=True)
-                processos_rede[processo.name()] = processos_rede.get(processo.name(), 0) + io_rede.bytes_sent + io_rede.bytes_recv
-
-        processo_mais_consumidor = max(processos_rede, key=processos_rede.get)
-        print("DEBUG: Processo mais consumidor de rede:", processo_mais_consumidor)
-
-        return "Tráfego de rede suspeito"
+        return "Tráfego de rede suspeito", bytes_enviados, bytes_recebidos
 
     # Se não houver desvios detectados, retorne um comportamento normal
-    return "Comportamento normal"
+    return "Comportamento normal", 0, 0
 
 # Função para monitorar o comportamento do sistema
 def monitorar_comportamento():
@@ -81,7 +61,7 @@ def monitorar_comportamento():
         network_traffic = psutil.net_io_counters()
 
         # Determinar o comportamento com base nas métricas coletadas
-        comportamento = determinar_comportamento(cpu_percent, network_traffic, last_network_traffic)
+        comportamento, bytes_enviados, bytes_recebidos = determinar_comportamento(cpu_percent, network_traffic, last_network_traffic)
 
         # Atualizar os valores da última medição de tráfego de rede
         last_network_traffic = network_traffic
@@ -91,14 +71,17 @@ def monitorar_comportamento():
 
         # Tomar ação com base na classificação (exemplo: alertar o usuário, bloquear atividade, etc.)
         if classificacao == 'suspeito':
-            alertar_usuario(comportamento)
+            alertar_usuario(comportamento, bytes_enviados, bytes_recebidos)
 
         # Intervalo de verificação do comportamento
         time.sleep(1)
 
 # Função para alertar o usuário sobre comportamento suspeito
-def alertar_usuario(comportamento):
-    print("Comportamento suspeito detectado:", comportamento)
+def alertar_usuario(comportamento, bytes_enviados, bytes_recebidos):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{timestamp} - Comportamento suspeito detectado: {comportamento}")
+    print(f"{timestamp} - Bytes enviados: {bytes_enviados}")
+    print(f"{timestamp} - Bytes recebidos: {bytes_recebidos}")
 
 # Função principal
 if __name__ == "__main__":
