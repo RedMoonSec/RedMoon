@@ -21,7 +21,7 @@ def exibir_menu():
     print("Selecione uma opção:")
     print("1. Iniciar monitoramento")
     print("2. Sair")
-    print("3. Rodar no Termux")
+    print("3. Clonar rede Wi-Fi")
 
 # Função para classificar o comportamento como normal ou suspeito
 def classificar_comportamento(comportamento):
@@ -85,23 +85,45 @@ def alertar_usuario(comportamento, bytes_enviados, bytes_recebidos):
     print(f"{timestamp} - Bytes enviados: {bytes_enviados}")
     print(f"{timestamp} - Bytes recebidos: {bytes_recebidos}")
 
-# Função dedicada ao Termux para obter informações do sistema usando Termux API
-def rodar_no_termux():
+# Função para clonar uma rede Wi-Fi
+def clonar_rede_wifi():
     try:
-        # Obtendo informações de rede usando o comando ifconfig
-        ifconfig_output = subprocess.check_output(["ifconfig"], universal_newlines=True)
-        
-        # Extrair estatísticas de entrada e saída de rede
-        matches = re.findall(r"RX bytes:(\d+) .* TX bytes:(\d+)", ifconfig_output)
-        if matches:
-            total_bytes_received = int(matches[0][0])
-            total_bytes_sent = int(matches[0][1])
+        # Solicitar ao usuário o nome da rede Wi-Fi que deseja clonar
+        nome_rede = input("Digite o nome da rede Wi-Fi que deseja clonar: ")
 
-            print("Estatísticas de Tráfego de Rede:")
-            print(f"Bytes recebidos: {total_bytes_received}")
-            print(f"Bytes enviados: {total_bytes_sent}")
+        # Use o comando 'iwconfig' para listar as interfaces de rede Wi-Fi disponíveis
+        interfaces_wifi = subprocess.check_output(["iwconfig"], universal_newlines=True)
+
+        # Encontre a interface de rede Wi-Fi disponível
+        interface_wifi = None
+        for linha in interfaces_wifi.split('\n'):
+            if 'IEEE 802.11' in linha:
+                interface_wifi = linha.split()[0]
+                break
+
+        if interface_wifi:
+            # Use o comando 'ifconfig' para configurar a interface de rede Wi-Fi com o nome da rede desejada
+            subprocess.run(["ifconfig", interface_wifi, "down"])
+            subprocess.run(["iwconfig", interface_wifi, "essid", nome_rede])
+            subprocess.run(["ifconfig", interface_wifi, "up"])
+
+            print(f"Interface de rede Wi-Fi '{interface_wifi}' clonada com sucesso para '{nome_rede}'.")
+
+            # Mostrar os pacotes recebidos/enviados na rede clonada
+            mostrar_pacotes(interface_wifi)
+
         else:
-            print("Não foi possível obter as estatísticas de rede.")
+            print("Nenhuma interface de rede Wi-Fi disponível.")
+
+    except subprocess.CalledProcessError as e:
+        print("Erro ao executar o comando:", e)
+
+# Função para mostrar os pacotes recebidos/enviados na rede clonada
+def mostrar_pacotes(interface_wifi):
+    try:
+        # Usar o comando 'tcpdump' para mostrar os pacotes recebidos/enviados na interface de rede Wi-Fi
+        print("Pacotes recebidos/enviados na rede clonada:")
+        subprocess.run(["tcpdump", "-i", interface_wifi])
 
     except subprocess.CalledProcessError as e:
         print("Erro ao executar o comando:", e)
@@ -119,6 +141,6 @@ if __name__ == "__main__":
             print("Saindo...")
             break
         elif opcao == "3":
-            rodar_no_termux()
+            clonar_rede_wifi()
         else:
             print("Opção inválida. Tente novamente.")
