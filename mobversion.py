@@ -6,6 +6,8 @@ from datetime import datetime
 import subprocess
 import re
 import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Função para exibir o texto RedMoon em ASCII art
 def display_redmoon():
@@ -87,17 +89,26 @@ def alertar_usuario(comportamento, bytes_enviados, bytes_recebidos):
     print(f"{timestamp} - Bytes recebidos: {bytes_recebidos}")
 
 # Função para enviar um e-mail sem autenticação SMTP
-def enviar_email_sem_autenticacao(remetente, destinatario, assunto, corpo, smtp_servidor, smtp_porta=25, de_nome=None):
+def enviar_email_sem_autenticacao(remetente, destinatario, assunto, corpo, smtp_servidor, smtp_porta=587, de_nome=None):
     # Configurar parâmetros do e-mail
     de_nome = de_nome or remetente  # Definir o nome do remetente se não estiver especificado
-    email = f"From: {de_nome} <{remetente}>\nTo: {destinatario}\nSubject: {assunto}\n\n{corpo}"
+
+    # Criar mensagem
+    msg = MIMEMultipart()
+    msg['From'] = f"{de_nome} <{remetente}>"
+    msg['To'] = destinatario
+    msg['Subject'] = assunto
+
+    # Adicionar corpo do e-mail
+    msg.attach(MIMEText(corpo, 'plain'))
 
     # Enviar o e-mail
     try:
-        # Conectar-se ao servidor SMTP
+        # Conectar-se ao servidor SMTP com TLS
         server = smtplib.SMTP(smtp_servidor, smtp_porta)
+        server.starttls()  # Habilitar conexão TLS
         # Enviar o e-mail sem autenticação
-        server.sendmail(remetente, destinatario, email)
+        server.sendmail(remetente, destinatario, msg.as_string())
         server.quit()
         print(f"E-mail enviado com sucesso para {destinatario}.")
     except Exception as e:
@@ -122,9 +133,9 @@ if __name__ == "__main__":
             assunto = input("Digite o assunto do e-mail: ")
             corpo = input("Digite o corpo do e-mail: ")
             smtp_servidor = input("Digite o servidor SMTP: ")
-            smtp_porta = input("Digite a porta SMTP (padrão é 25): ")
+            smtp_porta = input("Digite a porta SMTP (padrão é 587): ")
             if not smtp_porta:
-                smtp_porta = 25
+                smtp_porta = 587
             de_nome = input("Digite o nome do remetente (opcional): ")
             enviar_email_sem_autenticacao(remetente, destinatario, assunto, corpo, smtp_servidor, smtp_porta, de_nome)
         else:
