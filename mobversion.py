@@ -4,7 +4,7 @@ import pyfiglet
 from termcolor import colored
 from datetime import datetime
 import subprocess
-import json
+import re
 
 # Função para exibir o texto RedMoon em ASCII art
 def display_redmoon():
@@ -88,17 +88,20 @@ def alertar_usuario(comportamento, bytes_enviados, bytes_recebidos):
 # Função dedicada ao Termux para obter informações do sistema usando Termux API
 def rodar_no_termux():
     try:
-        # Obtendo estatísticas de tráfego de rede usando o comando termux-net-statistics
-        net_stats = subprocess.check_output(["termux-net-statistics"], shell=True, universal_newlines=True)
-        net_stats_json = json.loads(net_stats)
+        # Obtendo informações de rede usando o comando ifconfig
+        ifconfig_output = subprocess.check_output(["ifconfig"], universal_newlines=True)
         
-        # Obtendo informações de entrada e saída de rede
-        total_bytes_sent = net_stats_json["total"]["tx_bytes"]
-        total_bytes_received = net_stats_json["total"]["rx_bytes"]
+        # Extrair estatísticas de entrada e saída de rede
+        matches = re.findall(r"RX bytes:(\d+) .* TX bytes:(\d+)", ifconfig_output)
+        if matches:
+            total_bytes_received = int(matches[0][0])
+            total_bytes_sent = int(matches[0][1])
 
-        print("Estatísticas de Tráfego de Rede:")
-        print(f"Bytes enviados: {total_bytes_sent}")
-        print(f"Bytes recebidos: {total_bytes_received}")
+            print("Estatísticas de Tráfego de Rede:")
+            print(f"Bytes recebidos: {total_bytes_received}")
+            print(f"Bytes enviados: {total_bytes_sent}")
+        else:
+            print("Não foi possível obter as estatísticas de rede.")
 
     except subprocess.CalledProcessError as e:
         print("Erro ao executar o comando:", e)
