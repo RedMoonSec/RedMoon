@@ -5,6 +5,7 @@ from termcolor import colored
 from datetime import datetime
 import subprocess
 import re
+import smtplib
 
 # Função para exibir o texto RedMoon em ASCII art
 def display_redmoon():
@@ -21,7 +22,7 @@ def exibir_menu():
     print("Selecione uma opção:")
     print("1. Iniciar monitoramento")
     print("2. Sair")
-    print("3. Clonar rede Wi-Fi")
+    print("3. Enviar e-mail sem autenticação")
 
 # Função para classificar o comportamento como normal ou suspeito
 def classificar_comportamento(comportamento):
@@ -85,48 +86,22 @@ def alertar_usuario(comportamento, bytes_enviados, bytes_recebidos):
     print(f"{timestamp} - Bytes enviados: {bytes_enviados}")
     print(f"{timestamp} - Bytes recebidos: {bytes_recebidos}")
 
-# Função para clonar uma rede Wi-Fi
-def clonar_rede_wifi():
+# Função para enviar um e-mail sem autenticação SMTP
+def enviar_email_sem_autenticacao(remetente, destinatario, assunto, corpo, smtp_servidor, smtp_porta=25, de_nome=None):
+    # Configurar parâmetros do e-mail
+    de_nome = de_nome or remetente  # Definir o nome do remetente se não estiver especificado
+    email = f"From: {de_nome} <{remetente}>\nTo: {destinatario}\nSubject: {assunto}\n\n{corpo}"
+
+    # Enviar o e-mail
     try:
-        # Solicitar ao usuário o nome da rede Wi-Fi que deseja clonar
-        nome_rede = input("Digite o nome da rede Wi-Fi que deseja clonar: ")
-
-        # Use o comando 'iwconfig' para listar as interfaces de rede Wi-Fi disponíveis
-        interfaces_wifi = subprocess.check_output(["iwconfig"], universal_newlines=True)
-
-        # Encontre a interface de rede Wi-Fi disponível
-        interface_wifi = None
-        for linha in interfaces_wifi.split('\n'):
-            if 'IEEE 802.11' in linha:
-                interface_wifi = linha.split()[0]
-                break
-
-        if interface_wifi:
-            # Use o comando 'ifconfig' para configurar a interface de rede Wi-Fi com o nome da rede desejada
-            subprocess.run(["ifconfig", interface_wifi, "down"])
-            subprocess.run(["iwconfig", interface_wifi, "essid", nome_rede])
-            subprocess.run(["ifconfig", interface_wifi, "up"])
-
-            print(f"Interface de rede Wi-Fi '{interface_wifi}' clonada com sucesso para '{nome_rede}'.")
-
-            # Mostrar os pacotes recebidos/enviados na rede clonada
-            mostrar_pacotes(interface_wifi)
-
-        else:
-            print("Nenhuma interface de rede Wi-Fi disponível.")
-
-    except subprocess.CalledProcessError as e:
-        print("Erro ao executar o comando:", e)
-
-# Função para mostrar os pacotes recebidos/enviados na rede clonada
-def mostrar_pacotes(interface_wifi):
-    try:
-        # Usar o comando 'tcpdump' para mostrar os pacotes recebidos/enviados na interface de rede Wi-Fi
-        print("Pacotes recebidos/enviados na rede clonada:")
-        subprocess.run(["tcpdump", "-i", interface_wifi])
-
-    except subprocess.CalledProcessError as e:
-        print("Erro ao executar o comando:", e)
+        # Conectar-se ao servidor SMTP
+        server = smtplib.SMTP(smtp_servidor, smtp_porta)
+        # Enviar o e-mail sem autenticação
+        server.sendmail(remetente, destinatario, email)
+        server.quit()
+        print(f"E-mail enviado com sucesso para {destinatario}.")
+    except Exception as e:
+        print(f"Falha ao enviar o e-mail: {e}")
 
 # Função principal
 if __name__ == "__main__":
@@ -141,6 +116,16 @@ if __name__ == "__main__":
             print("Saindo...")
             break
         elif opcao == "3":
-            clonar_rede_wifi()
+            # Parâmetros para enviar o e-mail
+            remetente = input("Digite o endereço de e-mail do remetente: ")
+            destinatario = input("Digite o endereço de e-mail do destinatário: ")
+            assunto = input("Digite o assunto do e-mail: ")
+            corpo = input("Digite o corpo do e-mail: ")
+            smtp_servidor = input("Digite o servidor SMTP: ")
+            smtp_porta = input("Digite a porta SMTP (padrão é 25): ")
+            if not smtp_porta:
+                smtp_porta = 25
+            de_nome = input("Digite o nome do remetente (opcional): ")
+            enviar_email_sem_autenticacao(remetente, destinatario, assunto, corpo, smtp_servidor, smtp_porta, de_nome)
         else:
             print("Opção inválida. Tente novamente.")
